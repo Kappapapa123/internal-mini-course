@@ -32,3 +32,8 @@ notebooks/**/*.nbconvert.ipynb
 *.pth
 *.ckpt
 *.pdf
+
+# Raw W&B exports carry internal run/dataset names. Extract sanitized numbers
+# into assets/precomputed/ (e.g. real_training_curves.csv) and keep the raw export out.
+wandb_export_*.csv
+wandb/

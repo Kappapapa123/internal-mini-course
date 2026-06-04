@@ -9,6 +9,11 @@ Jupyter notebook per section.
 > learning rate ramps linearly from about 2e-5 to 1e-3 over 50 epochs, then decays
 > polynomially toward 0. The whole network trains the entire time. 
 
+## Course materials
+
+- **Slides** (read-only): https://docs.google.com/presentation/d/1Wl9y9EIAsGPOuoC2OpM2PAfnT9VTAYRGLwaIw3b3vhs/preview
+- The same deck is committed here as [`slides/deck.pptx`](slides/deck.pptx).
+
 ## Learning objectives
 
 By the end you will be able to:

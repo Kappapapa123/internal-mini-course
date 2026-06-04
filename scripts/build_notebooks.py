@@ -96,7 +96,10 @@ def nb01() -> None:
         new_markdown_cell(
             "## Load the volume and look at it\n\n"
             "Load the CT and its label, check the shape and intensity range, and list the label "
-            "values. Then view a few axial slices so you can see the phantom and its lesion."
+            "values. Then view a few axial slices so you can see the phantom and its lesion.\n\n"
+            "We render the slices with a **fixed intensity window** so brightness is comparable "
+            "across them. The lesion sits near the middle of the volume, so it appears only on "
+            "the central slice (z=16); the other slices show body tissue and air only."
         ),
         new_code_cell(
             LOAD_PHANTOM
@@ -106,8 +109,12 @@ def nb01() -> None:
         ),
         new_code_cell(
             "fig, axes = plt.subplots(1, 3, figsize=(9, 3))\n"
+            "# Fixed window (vmin/vmax) so the slices are directly comparable. Without it,\n"
+            "# matplotlib auto-scales each slice to its own min/max, so the body renders white\n"
+            "# on the lesion-free slices (it is the brightest thing there) and looks identical\n"
+            "# to the lesion on z=16. The lesion is only on z=16.\n"
             "for ax, z in zip(axes, [8, 16, 24]):\n"
-            "    ax.imshow(ct[:, :, z].T, cmap='gray', origin='lower')\n"
+            "    ax.imshow(ct[:, :, z].T, cmap='gray', origin='lower', vmin=-200, vmax=200)\n"
             "    ax.set_title(f'CT, z={z}')\n"
             "    ax.axis('off')\n"
             "fig.suptitle('Synthetic CT phantom (axial slices)')\n"
@@ -289,10 +296,14 @@ def nb03() -> None:
         ),
         new_markdown_cell(
             "## Compare on a real run\n\n"
-            "The schedule only matters once you actually train. Run the two fine-tuning jobs (the "
-            "default schedule at 1e-2 versus warm-up to 1e-3), export the loss curves from W&B, save "
-            "them to `assets/precomputed/real_training_curves.csv` (columns `epoch,naive,warmup`), "
-            "and the cell below will plot the comparison. No curve is fabricated here.\n\n"
+            "The schedule only matters once you actually train. The comparison that isolates the "
+            "warm-up is **plain 1e-3 (no warm-up) versus warm-up to 1e-3** (same 1e-3 peak, the only "
+            "difference is the 50-epoch ramp). Run both fine-tuning jobs, export the validation Dice "
+            "(`val/ema_fg_dice`, the smoothed foreground Dice nnU-Net uses to pick the best "
+            "checkpoint) from W&B, save it to `assets/precomputed/real_training_curves.csv` (columns "
+            "`epoch,plain,warmup`), and the cell below plots the comparison. Higher is better; no "
+            "curve is fabricated. The curve below is an in-house reproduction on a separate dataset, "
+            "distinct from the published TBI numbers.\n\n"
             "For the evidence table, paste the screenshot of Table 2 from the TBI paper "
             "(`arXiv:2504.06741`) onto the slide. For reference, the 5-fold average Dice is: "
             "from scratch 53.44, fine-tune at plain 1e-3 53.80, warm-up to 1e-2 53.28, warm-up to "
@@ -306,10 +317,11 @@ def nb03() -> None:
             "    rows = list(csv.DictReader(p.open()))\n"
             "    ep = [int(r['epoch']) for r in rows]\n"
             "    fig, ax = plt.subplots(figsize=(6, 3.2))\n"
-            "    ax.plot(ep, [float(r['naive']) for r in rows], label='default (1e-2)')\n"
+            "    ax.plot(ep, [float(r['plain']) for r in rows], label='plain 1e-3 (no warm-up)')\n"
             "    ax.plot(ep, [float(r['warmup']) for r in rows], label='warm-up to 1e-3')\n"
             "    ax.axvline(WARMUP, color='crimson', ls='--', lw=1, label='warm-up ends')\n"
-            "    ax.set_xlabel('epoch'); ax.set_ylabel('loss'); ax.legend(); fig.tight_layout()\n"
+            "    ax.set_xlabel('epoch'); ax.set_ylabel('validation Dice (EMA)'); ax.legend()\n"
+            "    ax.set_title('Fine-tuning: plain 1e-3 vs warm-up to 1e-3'); fig.tight_layout()\n"
             "    plt.show()\n"
             "else:\n"
             "    print('No real_training_curves.csv yet. Add it after the two fine-tuning runs.')"
