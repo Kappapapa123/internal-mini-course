@@ -1,0 +1,12 @@
+{
+  "channel_names": {
+    "0": "CT"
+  },
+  "labels": {
+    "background": 0,
+    "lesion": 1
+  },
+  "numTraining": 1,
+  "file_ending": ".nii.gz",
+  "description": "Synthetic CT phantom (no patient data). See DATA_PROVENANCE.md."
+}

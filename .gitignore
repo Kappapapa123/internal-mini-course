@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# uv / virtualenv
+.venv/
+
+# OS / shell crash artifacts
+*.stackdump
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Agent scratch + internal planning docs (reference the private sibling repo,
+# cluster account, W&B, and absolute local paths -- never publish these)
+.claude/
+docs/
+
+# Notebook execution scratch (keep committed outputs minimal; nbmake re-runs anyway)
+notebooks/**/*.nbconvert.ipynb
+
+# NOTE: unlike the lab research convention, assets/data/ and assets/precomputed/
+# ARE committed here (small, synthetic, license-safe) so the course is reproducible
+# by outsiders. Do NOT add them to this ignore file.
+
+# Never commit large model checkpoints or private/source PDFs
+*.pth
+*.ckpt
+*.pdf

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "Fine-tuning nnU-Net with Pre-trained Models: A Two-Phase LR Schedule (mini-course)"
+message: "If you use this course, please cite it as below."
+type: dataset
+authors:
+  - given-names: Keishi
+    family-names: Suzuki
+    email: keishi.suzuki@mail.utoronto.ca
+    affiliation: "University of Toronto"
+license: MIT
+repository-code: "https://github.com/Kappapapa123/internal-mini-course"
+keywords:
+  - medical-image-segmentation
+  - nnU-Net
+  - transfer-learning
+  - learning-rate-warmup
+  - educational
+date-released: 2026-06-04
