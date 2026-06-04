@@ -12,7 +12,7 @@ Jupyter notebook per section.
 ## Course materials
 
 - **Slides** (read-only): https://docs.google.com/presentation/d/1Wl9y9EIAsGPOuoC2OpM2PAfnT9VTAYRGLwaIw3b3vhs/preview
-- **Quiz/NotebookLM**: https://notebooklm.google.com/notebook/3ccfa389-cc14-4755-bc97-37663138e12d/preview
+- **Quiz/NotebookLM**: https://notebooklm.google.com/notebook/3ccfa389-cc14-4755-bc97-37663138e12d?authuser=1
 
 ## Learning objectives
 
