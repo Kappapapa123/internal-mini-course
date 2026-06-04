@@ -7,8 +7,7 @@ Jupyter notebook per section.
 
 > What "two-phase" means here: a learning-rate schedule for the fine-tuning run. The
 > learning rate ramps linearly from about 2e-5 to 1e-3 over 50 epochs, then decays
-> polynomially toward 0. The whole network trains the entire time. This is different from the
-> separate pretrain-then-fine-tune pipeline, which is also sometimes called "two-stage".
+> polynomially toward 0. The whole network trains the entire time. 
 
 ## Learning objectives
 
@@ -19,7 +18,7 @@ By the end you will be able to:
    (all deep-supervision segmentation layers).
 3. Implement and plot the two-phase LR schedule, and explain why a lower learning rate with
    warm-up helped on the TBI task and why it is not universally better (PANTHER).
-4. Run sliding-window inference, simple post-processing, and Dice evaluation (per class with nanmean).
+4. Run sliding-window inference, simple post-processing, and Dice evaluation.
 
 ## Run the notebooks (no GPU, no cluster, no private repo needed)
 
