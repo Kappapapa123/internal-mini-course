@@ -12,7 +12,6 @@ Jupyter notebook per section.
 ## Course materials
 
 - **Slides** (read-only): https://docs.google.com/presentation/d/1Wl9y9EIAsGPOuoC2OpM2PAfnT9VTAYRGLwaIw3b3vhs/preview
-- The same deck is committed here as [`slides/deck.pptx`](slides/deck.pptx).
 
 ## Learning objectives
 
