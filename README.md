@@ -66,12 +66,6 @@ tests/         correctness checks for the schedulers and Dice
 assets/        figures/, data/ (synthetic, committed), precomputed/
 ```
 
-## Citations and provenance
-
-See [`NOTICE.md`](NOTICE.md) for third-party attribution (nnU-Net, the TBI, PANTHER, and
-MultiTalent papers) and [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md) for the synthetic data.
-Course code is MIT; course content is additionally CC-BY-4.0.
-
 ## Limitations and honesty notes
 
 - Schedulers and behavior drift across nnU-Net versions. The concepts here are verified
