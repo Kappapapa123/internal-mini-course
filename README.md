@@ -58,7 +58,6 @@ uv run jupyter nbconvert --to notebook --execute --inplace notebooks/*.ipynb
 ## Repository layout
 
 ```
-slides/        OUTLINE.md (per-slide spec, speaker notes, timing) and deck.pptx
 notebooks/     01 data, 02 architecture, 03 training (main), 04 inference, 05 post, 06 eval
 course_utils/  vendored, simplified, CPU-runnable teaching code (lr_schedulers, dsc, viz)
 scripts/       generate_phantom.py, build_notebooks.py, teaching_fixtures.py
