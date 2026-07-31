@@ -644,7 +644,7 @@ def nb07() -> None:
             "exist here too.\n\n"
             "The LR schedule is a *training-time* concern and has no effect on inference, so plain "
             "subclasses are enough to make the names resolve and build the identical network. This is "
-            "the practical cost of the version/trainer identity baked into an nnU-Net checkpoint - "
+            "the practical cost of the version/trainer identity baked into an nnU-Net checkpoint, "
             "worth seeing rather than hiding."
         ),
         new_code_cell(
@@ -773,7 +773,7 @@ def nb07() -> None:
             "overlap, peaking at 0.899 plain against 0.902 warm-up. That is nnU-Net's mean-foreground "
             "*pseudo-Dice* during training, which is a different metric from the *liver-lesion-class* "
             "Dice at final evaluation. The separation shows up in per-class evaluation, not in the "
-            "curve - so don't read a training curve as a preview of the final gap.\n\n"
+            "curve, so don't read a training curve as a preview of the final gap.\n\n"
             "And the gain is task dependent: +1.37 Dice points here, about +0.4 on TBI, none on "
             "PANTHER. Run the ablation on your own task before assuming warm-up helps."
         ),
