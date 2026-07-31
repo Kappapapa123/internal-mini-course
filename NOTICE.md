@@ -13,9 +13,28 @@ copy of any upstream package.
 
 ## Learning-rate schedulers (`course_utils/lr_schedulers.py`)
 - Behavior (linear warm-up → offset polynomial decay) is reimplemented for teaching,
-  matching the schedule used by the PANTHER / TBI fine-tuning trainers. The exact
-  pretrained checkpoint, its plans file, source URL, and license must be named in the
-  README before any public release (do **not** redistribute the checkpoint here).
+  matching the schedule used by the PANTHER / TBI fine-tuning trainers.
+
+## Pretrained base checkpoint
+- **MultiTalentV2 Challenge Edition**, Constantin Ulrich (DKFZ) — a multi-dataset CT
+  segmentation ResEnc-L. **CC BY 4.0**, https://zenodo.org/records/13753413, related
+  publication `10.1007/978-3-031-43898-1_6`. The native-CT Z-score variant
+  (`Dataset617_nativect`, `fold_all`, `checkpoint_final.pth`) is what the course's
+  fine-tunes start from; details in [`MODEL_CARD.md`](MODEL_CARD.md).
+- No checkpoint — base or fine-tuned — is committed to **this** repository. Notebook 07
+  optionally downloads fine-tuned weights at runtime from a separate Hugging Face model
+  repo whose card is `MODEL_CARD.md`. CC BY 4.0 permits that redistribution with
+  attribution; publication is pending lab sign-off, and until then NB07 runs in
+  bring-your-own-checkpoint mode.
+
+## Dataset591_liver_lesions (used by notebook 07 only)
+- **"Training dataset for TotalSegmentator task liver_lesions"**, Jakob Wasserthal,
+  University Hospital Basel. **CC BY 4.0.**
+- Version DOI `10.5281/zenodo.20272572` (record: https://zenodo.org/records/20272572);
+  concept DOI `10.5281/zenodo.20272571`.
+- Not committed here. A few held-out cases are mirrored alongside the NB07 checkpoints,
+  which CC BY 4.0 permits with attribution; attribution is carried in the model card, in
+  NB07 itself, and here.
 
 ## Reference papers (cited, not redistributed)
 - **AIMS-TBI** (`arXiv:2504.06741`): "Large Scale Supervised Pretraining For Traumatic
@@ -35,3 +54,5 @@ papers are **redrawn** from reported values and cited, not screenshotted.
 
 ## Sample data
 - All committed sample data is **synthetic** (see `DATA_PROVENANCE.md`). No patient data.
+- Notebook 07 downloads real, openly-licensed (CC BY 4.0) CT cases at runtime; still
+  nothing licensed or patient-identifiable is committed to this repository.

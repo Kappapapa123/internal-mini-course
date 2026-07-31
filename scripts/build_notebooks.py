@@ -4,12 +4,16 @@ The ``.ipynb`` files under ``notebooks/`` are the committed deliverables; this s
 is their source of truth. Edit here, then regenerate and execute:
 
     uv run python scripts/build_notebooks.py
-    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/*.ipynb
+    uv run jupyter nbconvert --to notebook --execute --inplace notebooks/0[1-6]*.ipynb
 
-Every notebook is laptop/CPU runnable: it teaches the logic of nnU-Net on the tiny
-synthetic phantom, and shows real ``nnUNetv2_*`` commands as read-only markdown. A shared
+Notebooks 01-06 are laptop/CPU runnable: they teach the logic of nnU-Net on the tiny
+synthetic phantom, and show real ``nnUNetv2_*`` commands as read-only markdown. A shared
 bootstrap cell makes each notebook runnable from any working directory (it adds the repo
 to ``sys.path`` and regenerates the synthetic data if missing).
+
+NB07 is the exception and is deliberately outside the execute glob: it needs a Colab GPU
+and real fine-tuned weights, so its outputs come from a manual Colab run. Editing ``nb07()``
+means re-running that notebook on Colab and committing the result.
 """
 
 from __future__ import annotations
@@ -494,9 +498,291 @@ def nb06() -> None:
     _save(new_notebook(cells=c), "06_evaluation_and_visualization.ipynb")
 
 
+# --------------------------------------------------------------------------- NB07
+def nb07() -> None:
+    """Optional Colab-GPU notebook: real fine-tuned checkpoints, inference only.
+
+    NB07 is the one notebook that cannot be executed by the local CPU build, so it is
+    excluded from the nbconvert glob (``notebooks/0[1-6]*.ipynb``). Its committed outputs
+    come from a manual Colab GPU run: **any edit here requires re-running it on Colab**
+    and committing the result, or its outputs go stale.
+
+    The weight source is a single constant (``CKPT_SOURCE``) so the notebook works both as
+    a published-checkpoint download and as bring-your-own-checkpoint.
+    """
+    c = [
+        new_markdown_cell(
+            "# 07. Real checkpoints on a Colab GPU (optional)\n\n"
+            "**Goal:** run the plain-versus-warm-up comparison on the real fine-tuned checkpoints "
+            "and real CT, instead of reading it off a CSV.\n\n"
+            "**This notebook is optional and additive.** It needs a Colab **GPU** runtime and the "
+            "weights; 01-06 stay laptop-runnable with no GPU and are unaffected.\n\n"
+            "**Inference only. No training happens here.**\n\n"
+            "The two checkpoints are fold-0, 1000-epoch fine-tunes of the **MultiTalentV2 Challenge "
+            "Edition** pretrained CT model (Ulrich, DKFZ; https://zenodo.org/records/13753413) on "
+            "`Dataset591_liver_lesions`, differing only in the LR schedule:\n\n"
+            "| Variant | Schedule | Liver-lesion Dice (169 validation cases) |\n"
+            "|---|---|---|\n"
+            "| `plain1e3` | LR 1e-3, default PolyLR | 0.7890 |\n"
+            "| `warmup1e3` | 50-epoch linear warm-up to 1e-3, then offset PolyLR | 0.8027 |\n\n"
+            "Runtime: **Runtime > Change runtime type > GPU**, then run top to bottom.\n\n"
+            "> These checkpoints were trained on a 20 GB GPU slice. Inference needs less memory than "
+            "training, so a 16 GB Colab T4 should be enough - but that has not been measured yet. If "
+            "you hit out-of-memory, cell 5 has a fallback ladder."
+        ),
+        new_markdown_cell(
+            "## Data attribution\n\n"
+            "The CT cases used below come from **`Dataset591_liver_lesions`** - \"Training dataset for "
+            "TotalSegmentator task liver_lesions\", Jakob Wasserthal, University Hospital Basel: "
+            "https://doi.org/10.5281/zenodo.20272572\n\n"
+            "Only a couple of held-out cases are used here; nothing is committed to the course repo."
+        ),
+        new_markdown_cell(
+            "## 1. Guard: is there actually a GPU?\n\n"
+            "Without CUDA, ResEnc-L `3d_fullres` sliding-window inference at 1 mm isotropic will "
+            "grind for a very long time. Fail loudly and early instead."
+        ),
+        new_code_cell(
+            "import shutil, subprocess, sys\n\n"
+            "HAS_GPU = False\n"
+            "if shutil.which('nvidia-smi'):\n"
+            "    print(subprocess.run(['nvidia-smi', '--query-gpu=name,memory.total',\n"
+            "                          '--format=csv,noheader'],\n"
+            "                         capture_output=True, text=True).stdout.strip())\n"
+            "try:\n"
+            "    import torch\n"
+            "    HAS_GPU = torch.cuda.is_available()\n"
+            "    print('torch', torch.__version__, '| cuda available:', HAS_GPU)\n"
+            "except ImportError:\n"
+            "    print('torch not importable yet - it is installed in the next cell')\n\n"
+            "if not HAS_GPU:\n"
+            "    print('\\n*** NO GPU DETECTED ***')\n"
+            "    print('Colab: Runtime > Change runtime type > Hardware accelerator > GPU, then rerun.')\n"
+            "    print('You can still finish the course without this notebook: 01-06 are CPU-only.')"
+        ),
+        new_markdown_cell(
+            "## 2. Install nnU-Net (the version pin is load-bearing)\n\n"
+            "An nnU-Net checkpoint stores the *identity* of its trainer class and plans. Load it with "
+            "a different nnU-Net version and you get an unhelpful key or attribute error rather than "
+            "a clear \"version mismatch\". `NNUNET_VERSION` below is the version the checkpoints were "
+            "trained with - change it only if you supply your own weights.\n\n"
+            "Colab ships its own torch build, so this install may need a **runtime restart** "
+            "(*Runtime > Restart session*). If prompted, restart and rerun from cell 1; the env vars "
+            "are re-set below, so nothing is lost."
+        ),
+        new_code_cell(
+            "NNUNET_VERSION = '2.6.4'   # the version these checkpoints were trained with\n\n"
+            "get_ipython().system(f'pip install -q nnunetv2=={NNUNET_VERSION}')\n\n"
+            "import os\n"
+            "from pathlib import Path\n\n"
+            "ROOT = Path('/content/nnunet') if Path('/content').exists() else Path.cwd() / 'nnunet'\n"
+            "RAW, PREP, RESULTS = ROOT / 'nnUNet_raw', ROOT / 'nnUNet_preprocessed', ROOT / 'nnUNet_results'\n"
+            "for d in (RAW, PREP, RESULTS):\n"
+            "    d.mkdir(parents=True, exist_ok=True)\n"
+            "os.environ['nnUNet_raw'] = str(RAW)\n"
+            "os.environ['nnUNet_preprocessed'] = str(PREP)\n"
+            "os.environ['nnUNet_results'] = str(RESULTS)\n"
+            "print('nnUNet_results =', RESULTS)"
+        ),
+        new_markdown_cell(
+            "## 3. Fetch the two checkpoints\n\n"
+            "nnU-Net finds a model by directory layout, not by argument, so the files must land at\n\n"
+            "```\n"
+            "$nnUNet_results/Dataset591_liver_lesions/<trainer>__<plans>__3d_fullres/\n"
+            "    plans.json\n"
+            "    dataset.json\n"
+            "    fold_0/checkpoint_final.pth\n"
+            "```\n\n"
+            "`CKPT_SOURCE` is the only thing you need to change to use **your own** fine-tunes: point "
+            "it at a Hugging Face repo id, or set `LOCAL_CKPT_DIR` to a directory (or mounted Drive "
+            "path) that already has the layout above and the download is skipped entirely.\n\n"
+            "Each file is about 820 MB, so this cell takes a few minutes. Most of that is optimizer "
+            "state nnU-Net saves for resuming training, which inference does not need - the "
+            "checkpoints are published unmodified so their sha256 sums (in `MODEL_CARD.md`) match the "
+            "originals."
+        ),
+        new_code_cell(
+            "# --- configure the weight source -------------------------------------------------\n"
+            "CKPT_SOURCE = 'KS987/multitalentv2-finetune-liver'   # Hugging Face repo id\n"
+            "LOCAL_CKPT_DIR = None     # or point this at your own fine-tunes in $nnUNet_results layout\n\n"
+            "DATASET = 'Dataset591_liver_lesions'\n"
+            "PLANS = 'nnUNetResEncUNetL1x1x1_Plans_znorm_bs24_mig_bs1'\n"
+            "VARIANTS = {\n"
+            "    'plain 1e-3 (no warm-up)': 'nnUNetTrainer_plain1e3_wandb',\n"
+            "    'warm-up to 1e-3':         'nnUNetTrainer_warmup1e3_wandb',\n"
+            "}\n"
+            "MODEL_DIRS = {label: RESULTS / DATASET / f'{t}__{PLANS}__3d_fullres'\n"
+            "              for label, t in VARIANTS.items()}\n\n"
+            "if LOCAL_CKPT_DIR:\n"
+            "    src = Path(LOCAL_CKPT_DIR)\n"
+            "    print('using local checkpoints from', src)\n"
+            "    shutil.copytree(src, RESULTS / DATASET, dirs_exist_ok=True)\n"
+            "elif CKPT_SOURCE:\n"
+            "    get_ipython().system('pip install -q huggingface_hub')\n"
+            "    from huggingface_hub import snapshot_download\n"
+            "    snapshot_download(repo_id=CKPT_SOURCE, allow_patterns=[f'{DATASET}/**'],\n"
+            "                      local_dir=str(RESULTS))\n"
+            "else:\n"
+            "    raise SystemExit(\n"
+            "        'No weight source configured.\\n'\n"
+            "        'Set CKPT_SOURCE to the published Hugging Face repo id, or LOCAL_CKPT_DIR to '\n"
+            "        'your own fine-tunes in $nnUNet_results layout. See README for status.'\n"
+            "    )\n\n"
+            "for label, d in MODEL_DIRS.items():\n"
+            "    ck = d / 'fold_0' / 'checkpoint_final.pth'\n"
+            "    print(f'{label:26s} {ck.stat().st_size / 1e6:7.1f} MB  {ck.exists()}')"
+        ),
+        new_markdown_cell(
+            "## 3b. Register the two trainer names\n\n"
+            "nnU-Net resolves a checkpoint's trainer **by class name**, searching the installed "
+            "`nnunetv2` package. `nnUNetTrainer_plain1e3_wandb` and `nnUNetTrainer_warmup1e3_wandb` "
+            "are custom variants that live in the lab's training environment, not in the pip package, "
+            "so `nnUNetv2_predict` would fail with a \"could not find trainer\" error until they "
+            "exist here too.\n\n"
+            "The LR schedule is a *training-time* concern and has no effect on inference, so plain "
+            "subclasses are enough to make the names resolve and build the identical network. This is "
+            "the practical cost of the version/trainer identity baked into an nnU-Net checkpoint - "
+            "worth seeing rather than hiding."
+        ),
+        new_code_cell(
+            "import nnunetv2, textwrap\n\n"
+            "variants = Path(nnunetv2.__file__).parent / 'training' / 'nnUNetTrainer' / 'variants' / 'lr_schedule'\n"
+            "variants.mkdir(parents=True, exist_ok=True)\n"
+            "(variants / '__init__.py').touch()\n"
+            "for name in ('plain1e3', 'warmup1e3'):\n"
+            "    (variants / f'{name}_wandb.py').write_text(textwrap.dedent(f'''\n"
+            "        from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer\n\n\n"
+            "        class nnUNetTrainer_{name}_wandb(nnUNetTrainer):\n"
+            "            \"\"\"Inference-only shim: the real variant differs in LR schedule.\"\"\"\n"
+            "    ''').lstrip())\n"
+            "print('registered:', [p.name for p in sorted(variants.glob('*1e3_wandb.py'))])"
+        ),
+        new_markdown_cell(
+            "## 4. Fetch the CT cases\n\n"
+            "nnU-Net's raw naming is `<CASE>_0000.nii.gz` for images (`_0000` is the modality index, "
+            "here the single CT channel) and `<CASE>.nii.gz` for labels. Two cases by default."
+        ),
+        new_code_cell(
+            "IMAGES, LABELS = RAW / DATASET / 'imagesTs', RAW / DATASET / 'labelsTs'\n"
+            "for d in (IMAGES, LABELS):\n"
+            "    d.mkdir(parents=True, exist_ok=True)\n\n"
+            "if CKPT_SOURCE:\n"
+            "    from huggingface_hub import snapshot_download\n"
+            "    snapshot_download(repo_id=CKPT_SOURCE, allow_patterns=['cases/**'],\n"
+            "                      local_dir=str(ROOT / 'download'))\n"
+            "    for f in sorted((ROOT / 'download' / 'cases').rglob('*.nii.gz')):\n"
+            "        (LABELS if '_0000' not in f.name else IMAGES).joinpath(f.name).write_bytes(f.read_bytes())\n\n"
+            "cases = sorted(p.name.replace('_0000.nii.gz', '') for p in IMAGES.glob('*_0000.nii.gz'))\n"
+            "print('cases:', cases)\n"
+            "print('\\nData: Dataset591_liver_lesions (Wasserthal, University Hospital Basel), '\n"
+            "      'doi:10.5281/zenodo.20272572')"
+        ),
+        new_markdown_cell(
+            "## 5. Predict twice - once per schedule\n\n"
+            "Same data, same plans, same architecture; the *only* difference between the two runs is "
+            "which fine-tuned weights are loaded.\n\n"
+            "`--disable_tta` turns off test-time augmentation (8x mirroring). It is the first rung of "
+            "the VRAM/time ladder and costs a little accuracy; if you still hit OOM, raise "
+            "`--step_size` (fewer sliding-window positions), and as a last resort add "
+            "`-device cpu` - correct, but expect tens of minutes per case."
+        ),
+        new_code_cell(
+            "import time\n\n"
+            "PRED_DIRS = {}\n"
+            "for label, model_dir in MODEL_DIRS.items():\n"
+            "    out = ROOT / 'pred' / model_dir.name\n"
+            "    out.mkdir(parents=True, exist_ok=True)\n"
+            "    PRED_DIRS[label] = out\n"
+            "    t0 = time.perf_counter()\n"
+            "    get_ipython().system(\n"
+            "        f'nnUNetv2_predict -i {IMAGES} -o {out} -d {DATASET} -c 3d_fullres -f 0 '\n"
+            "        f'-tr {VARIANTS[label]} -p {PLANS} -chk checkpoint_final.pth --disable_tta'\n"
+            "    )\n"
+            "    print(f'{label:26s} {time.perf_counter() - t0:6.1f} s wall clock')"
+        ),
+        new_markdown_cell(
+            "## 6. Score both against the ground truth\n\n"
+            "Reusing `course_utils.dsc` - the same Dice implementation NB06 verified against "
+            "hand-built cases. Label 1 is the liver lesion."
+        ),
+        new_code_cell(
+            "get_ipython().system('pip install -q nibabel')\n"
+            "import nibabel as nib\n"
+            "import numpy as np\n\n"
+            "# course_utils is a two-file dependency; fetch it if we are on a bare Colab runtime.\n"
+            "try:\n"
+            "    from course_utils.dsc import dice_for_label\n"
+            "except ImportError:\n"
+            "    get_ipython().system('git clone -q https://github.com/Kappapapa123/internal-mini-course /content/course')\n"
+            "    sys.path.insert(0, '/content/course')\n"
+            "    from course_utils.dsc import dice_for_label\n\n"
+            "def load(p):\n"
+            "    return np.rint(np.asarray(nib.load(str(p)).dataobj)).astype(int)\n\n"
+            "scores = {}\n"
+            "for label, out in PRED_DIRS.items():\n"
+            "    scores[label] = [dice_for_label(load(out / f'{c}.nii.gz'),\n"
+            "                                    load(LABELS / f'{c}.nii.gz'), 1) for c in cases]\n\n"
+            "print(f\"{'variant':26s} \" + '  '.join(f'{c:>12s}' for c in cases) + '    mean')\n"
+            "for label, s in scores.items():\n"
+            "    print(f'{label:26s} ' + '  '.join(f'{v:12.4f}' for v in s) + f'  {np.nanmean(s):6.4f}')\n\n"
+            "delta = np.nanmean(scores['warm-up to 1e-3']) - np.nanmean(scores['plain 1e-3 (no warm-up)'])\n"
+            "print(f'\\nwarm-up minus plain, on these {len(cases)} cases: {delta:+.4f} Dice')\n"
+            "print('for reference, over all 169 fold-0 validation cases: '\n"
+            "      '0.7890 plain vs 0.8027 warm-up  (+0.0137)')"
+        ),
+        new_markdown_cell(
+            "## 7. Look at the segmentations\n\n"
+            "A Dice number on two cases hides a lot. Overlay ground truth against both predictions on "
+            "the slice with the most lesion voxels."
+        ),
+        new_code_cell(
+            "import matplotlib.pyplot as plt\n"
+            "try:\n"
+            "    from course_utils.viz import overlay_mask_on_slice\n"
+            "except ImportError:\n"
+            "    sys.path.insert(0, '/content/course')\n"
+            "    from course_utils.viz import overlay_mask_on_slice\n\n"
+            "for c in cases:\n"
+            "    ct = np.asarray(nib.load(str(IMAGES / f'{c}_0000.nii.gz')).dataobj, dtype=np.float32)\n"
+            "    gt = load(LABELS / f'{c}.nii.gz')\n"
+            "    z = int(np.argmax((gt == 1).sum(axis=(0, 1))))   # busiest lesion slice\n"
+            "    panels = [('ground truth', gt)] + [(lab, load(PRED_DIRS[lab] / f'{c}.nii.gz'))\n"
+            "                                       for lab in PRED_DIRS]\n"
+            "    fig, axes = plt.subplots(1, len(panels), figsize=(4 * len(panels), 4))\n"
+            "    for ax, (title, mask) in zip(axes, panels):\n"
+            "        overlay_mask_on_slice(ct, mask, z=z, ax=ax)\n"
+            "        ax.set_title(title)\n"
+            "    fig.suptitle(f'{c}  (z={z})')\n"
+            "    fig.tight_layout()\n"
+            "    plt.show()"
+        ),
+        new_markdown_cell(
+            "## Recap, and three honesty notes\n\n"
+            "You just ran the course's central claim end to end on real weights and real CT: same "
+            "pretrained checkpoint, same data, same plans, two LR schedules, and a measurable Dice "
+            "difference. Three things this notebook does **not** show:\n\n"
+            "1. **A couple of cases is an anecdote, not an evaluation.** Whatever gap you got above, "
+            "the number to quote is the one over all 169 fold-0 validation cases: **0.789 plain vs "
+            "0.803 warm-up**. Two cases can easily land the wrong way round. And even that 169-case "
+            "number is one fold of one dataset, with no error bar.\n"
+            "2. **The training curves in NB03 do not predict this gap.** "
+            "`assets/precomputed/real_training_curves.csv` is these same two runs, and its curves "
+            "nearly overlap - peaking at 0.899 plain vs 0.902 warm-up, ending at 0.882 vs 0.881. That "
+            "is nnU-Net's *mean-foreground pseudo-Dice* during training, a different metric from the "
+            "*liver-lesion-class* Dice at final evaluation. Same runs, different metric: the "
+            "separation shows up in per-class evaluation, not in the curve.\n"
+            "3. **The gain is task dependent.** +1.37 Dice points on liver lesions here, about +0.4 on "
+            "TBI, and no benefit at all on PANTHER. Quote the 591 numbers for 591. Run the small "
+            "plain-versus-warm-up ablation on *your* task before assuming warm-up helps - that is the "
+            "actual lesson of this course."
+        ),
+    ]
+    _save(new_notebook(cells=c), "07_real_checkpoints_colab.ipynb")
+
+
 def main() -> None:
     NB_DIR.mkdir(exist_ok=True)
-    nb01(); nb02(); nb03(); nb04(); nb05(); nb06()
+    nb01(); nb02(); nb03(); nb04(); nb05(); nb06(); nb07()
 
 
 if __name__ == "__main__":
