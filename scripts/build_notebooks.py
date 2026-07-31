@@ -503,9 +503,12 @@ def nb07() -> None:
     """Optional Colab-GPU notebook: real fine-tuned checkpoints, inference only.
 
     NB07 is the one notebook that cannot be executed by the local CPU build, so it is
-    excluded from the nbconvert glob (``notebooks/0[1-6]*.ipynb``). Its committed outputs
-    come from a manual Colab GPU run: **any edit here requires re-running it on Colab**
-    and committing the result, or its outputs go stale.
+    excluded from the nbconvert glob (``notebooks/0[1-6]*.ipynb``). **Any edit here requires
+    re-running it on a GPU** and committing the result, or its outputs go stale.
+
+    The committed outputs come from ``scripts/nb07_fir_rehearsal.sh`` on an Alliance Canada
+    H100 (job 51987569), not from Colab -- so they prove the logic, the HF download and the
+    trainer shims work, but not that a 16 GB Colab T4 has enough VRAM.
 
     The weight source is a single constant (``CKPT_SOURCE``) so the notebook works both as
     a published-checkpoint download and as bring-your-own-checkpoint.
@@ -650,7 +653,11 @@ def nb07() -> None:
             "variants.mkdir(parents=True, exist_ok=True)\n"
             "(variants / '__init__.py').touch()\n"
             "for name in ('plain1e3', 'warmup1e3'):\n"
-            "    (variants / f'{name}_wandb.py').write_text(textwrap.dedent(f'''\n"
+            "    target = variants / f'{name}_wandb.py'\n"
+            "    if target.exists():\n"
+            "        print(f'{target.name} already present - leaving it alone')\n"
+            "        continue\n"
+            "    target.write_text(textwrap.dedent(f'''\n"
             "        from nnunetv2.training.nnUNetTrainer.nnUNetTrainer import nnUNetTrainer\n\n\n"
             "        class nnUNetTrainer_{name}_wandb(nnUNetTrainer):\n"
             "            \"\"\"Inference-only shim: the real variant differs in LR schedule.\"\"\"\n"
