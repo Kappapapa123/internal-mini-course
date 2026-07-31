@@ -5,10 +5,6 @@ MultiTalent-style foundation model using a two-phase learning-rate schedule
 (linear warm-up, then polynomial decay). It pairs a 50-minute slide talk with one
 Jupyter notebook per section.
 
-> What "two-phase" means here: a learning-rate schedule for the fine-tuning run. The
-> learning rate ramps linearly from about 2e-5 to 1e-3 over 50 epochs, then decays
-> polynomially toward 0. The whole network trains the entire time. 
-
 ## Course materials
 
 - **Slides** (read-only): https://docs.google.com/presentation/d/1Wl9y9EIAsGPOuoC2OpM2PAfnT9VTAYRGLwaIw3b3vhs/preview
