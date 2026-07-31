@@ -48,7 +48,7 @@ uv run jupyter nbconvert --to notebook --execute --inplace notebooks/0[1-6]*.ipy
 Notebook 07 is deliberately outside that glob: it needs a GPU and real weights, so its
 outputs come from a manual Colab run (see below).
 
-## Optional: run it for real (Colab GPU)
+## Optional: run the actual model (Colab GPU)
 
 [`notebooks/07_real_checkpoints_colab.ipynb`](notebooks/07_real_checkpoints_colab.ipynb)
 closes the loop. Notebooks 01–06 teach the *logic* on a phantom, and NB03's
@@ -64,8 +64,7 @@ chain from the MultiTalentV2 base model through the liver-lesion dataset. To use
 fine-tunes instead, point `CKPT_SOURCE` or `LOCAL_CKPT_DIR` at them and every other cell
 works unchanged.
 
-This notebook is **additive and optional**. Skipping it costs you nothing in 01–06, and the
-course stays fully runnable with no GPU.
+This notebook is **additive and optional**. 
 
 ## What this course does not cover
 
